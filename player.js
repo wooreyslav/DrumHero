@@ -67,9 +67,8 @@ let animFrame      = null;
 export let notes = [];
 
 // ── HIT FLASHES ──────────────────────────────────────────────────────────────
-// Each flash: { note (ref), instIdx, color, vel, age 0→1 }
 const flashes = [];
-const FLASH_WINDOW = 0.045; // seconds — capture window around the hit line
+const FLASH_WINDOW = 0.045; // seconds — capture window around hit line
 
 // ── CANVAS ───────────────────────────────────────────────────────────────────
 let canvas, ctx;
@@ -80,7 +79,7 @@ const HIT_X       = () => Math.round(W * 0.20);
 let LOOK_AHEAD  = 2.6;   // seconds visible ahead — pinch to zoom changes this
 const LOOK_BEHIND = 0.3;
 const LOOK_AHEAD_MIN = 0.8;   // max zoom in  (~0.8s window)
-const LOOK_AHEAD_MAX = 6.0;   // max zoom out (~6s window)
+const LOOK_AHEAD_MAX = 15.0;   // max zoom out (~15s window)
 
 export function setLookAhead(v) {
   LOOK_AHEAD = Math.max(LOOK_AHEAD_MIN, Math.min(LOOK_AHEAD_MAX, v));
@@ -160,9 +159,12 @@ export async function loadTrack(midiNotes, audioArrayBuffer) {
   playbackRate = 1;
   LOOK_AHEAD   = 2.6;  // reset zoom on new track
 
-  // Reset speed selector
+  // Reset speed selector and volume
   const speedSel = document.getElementById('speed-sel') || document.querySelector('.speed-sel');
   if (speedSel) speedSel.value = '1';
+  const volSlider = document.querySelector('.vol-wrap input[type=range]');
+  if (volSlider) { volSlider.value = '1'; }
+  if (gainNode) gainNode.gain.value = 1;
 
   // Wait for real layout dimensions before building labels
   _waitForSize(() => {
@@ -188,7 +190,6 @@ export function unloadTrack() {
   pauseOffset  = 0;
   playbackRate = 1;
   notes        = [];
-  flashes.length = 0;
 
   // Reset play button
   const btn = document.getElementById('btn-play');
@@ -300,6 +301,21 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
 
+  // Subdivision grid
+  const gridDiv = window._gridDiv || 0;
+  if (gridDiv > 0) {
+    const subBeat = gridDiv === 3 ? beat / 3 : beat / gridDiv;
+    const subStart = Math.ceil((t - LOOK_BEHIND) / subBeat) * subBeat;
+    ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+    ctx.lineWidth = 0.8;
+    for (let b = subStart; b <= t + LOOK_AHEAD; b += subBeat) {
+      // Skip positions that coincide with the main beat grid
+      if (Math.abs(((b / beat) % 1)) < 0.005) continue;
+      const x = hitX + (b - t) * pxSec;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+  }
+
   // Hit line glow
   const gl = ctx.createLinearGradient(hitX - 50, 0, hitX + 10, 0);
   gl.addColorStop(0, 'transparent');
@@ -398,49 +414,48 @@ function draw() {
     ctx.restore();
   });
 
-  // ── Hit flashes ──────────────────────────────────────────────────────────
-  // Spawn a flash for any note currently within FLASH_WINDOW of the hit line
+  // ── Hit flashes ───────────────────────────────────────────────────────────
   notes.forEach(note => {
     if (note.hit) return;
-    if (Math.abs(note.time - t) > FLASH_WINDOW) return;
-    const instIdx = INSTRUMENTS.findIndex(i => i.id === note.inst);
-    if (instIdx < 0) return;
-    if (flashes.find(f => f.note === note)) return; // already spawned
-    flashes.push({ note, instIdx, color: INSTRUMENTS[instIdx].color, vel: note.vel, age: 0 });
+    const dt = note.time - t;
+    if (Math.abs(dt) > FLASH_WINDOW) return;
+    if (!flashes.find(f => f.note === note)) {
+      const instIdx = INSTRUMENTS.findIndex(i => i.id === note.inst);
+      if (instIdx < 0) return;
+      flashes.push({ note, instIdx, color: INSTRUMENTS[instIdx].color, age: 0, vel: note.vel });
+    }
   });
 
-  // Render and age each flash
   for (let i = flashes.length - 1; i >= 0; i--) {
     const f = flashes[i];
-    f.age += 0.055; // ~18 frames to die at 60fps
+    f.age += 0.055;
     if (f.age >= 1) { flashes.splice(i, 1); continue; }
 
-    const eased    = 1 - f.age * f.age; // ease-out quad
-    const isAccent = f.vel >= 100;
+    const eased    = 1 - f.age * f.age;
     const cy       = f.instIdx * laneH + laneH / 2;
-    const laneTop  = f.instIdx * laneH;
-    const baseR    = Math.max(8, Math.min(32, laneH * (isAccent ? 0.72 : 0.52)));
-    const r        = baseR * (1 + f.age * 1.5); // ring expands outward
+    const isAccent = f.vel >= 100;
+    const baseR    = Math.max(8, Math.min(32, laneH * (isAccent ? 0.7 : 0.5)));
+    const r        = baseR * (1 + f.age * 1.4);
 
     ctx.save();
 
-    // Lane highlight — soft color wash across the full lane width
-    ctx.globalAlpha = eased * (isAccent ? 0.20 : 0.10);
+    // Lane wash
+    ctx.globalAlpha = eased * (isAccent ? 0.18 : 0.09);
     ctx.fillStyle   = f.color;
-    ctx.fillRect(0, laneTop, W, laneH);
+    ctx.fillRect(Math.max(0, hitX - r * 2), f.instIdx * laneH, r * 4, laneH);
 
-    // Expanding ring on the hit line
-    ctx.globalAlpha = eased * (isAccent ? 0.90 : 0.72);
+    // Expanding ring
+    ctx.globalAlpha = eased * (isAccent ? 0.9 : 0.7);
     ctx.beginPath();
     ctx.arc(hitX, cy, r, 0, Math.PI * 2);
     ctx.strokeStyle = f.color;
-    ctx.lineWidth   = Math.max(0.5, 2.5 * (1 - f.age));
+    ctx.lineWidth   = Math.max(1, 3 * (1 - f.age));
     ctx.stroke();
 
-    // Bright white centre dot
+    // Center white dot
     ctx.globalAlpha = eased * 0.95;
     ctx.beginPath();
-    ctx.arc(hitX, cy, Math.max(2, laneH * 0.13 * (1 - f.age * 0.5)), 0, Math.PI * 2);
+    ctx.arc(hitX, cy, Math.max(2, laneH * 0.12 * (1 - f.age * 0.5)), 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 

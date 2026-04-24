@@ -432,6 +432,12 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
       <option value="0.95">0.95×</option>
       <option value="1" selected>1×</option>
     </select>
+    <select class="speed-sel" id="grid-sel" onchange="setGridDiv(this.value)">
+      <option value="0">grid —</option>
+      <option value="2">1/8</option>
+      <option value="3">1/8T</option>
+      <option value="4" selected>1/16</option>
+    </select>
   </div>
 </div>
 
@@ -451,6 +457,8 @@ window.saveMidiMapUI = saveMidiMapUI;
 window.backToMenu  = backToMenu;
 window.confirmCancel = confirmCancel;
 window.loadLibrary = loadLibrary;
+window.setGridDiv  = v => { window._gridDiv = parseInt(v); };
+window._gridDiv    = 4; // default 1/16
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 Player.initCanvas(document.getElementById('track-canvas'));
