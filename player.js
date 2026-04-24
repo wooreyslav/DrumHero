@@ -66,6 +66,11 @@ let animFrame      = null;
 
 export let notes = [];
 
+// ── HIT FLASHES ──────────────────────────────────────────────────────────────
+// Each flash: { note (ref), instIdx, color, vel, age 0→1 }
+const flashes = [];
+const FLASH_WINDOW = 0.045; // seconds — capture window around the hit line
+
 // ── CANVAS ───────────────────────────────────────────────────────────────────
 let canvas, ctx;
 export let W = 0, H = 0;
@@ -183,6 +188,7 @@ export function unloadTrack() {
   pauseOffset  = 0;
   playbackRate = 1;
   notes        = [];
+  flashes.length = 0;
 
   // Reset play button
   const btn = document.getElementById('btn-play');
@@ -391,6 +397,55 @@ function draw() {
 
     ctx.restore();
   });
+
+  // ── Hit flashes ──────────────────────────────────────────────────────────
+  // Spawn a flash for any note currently within FLASH_WINDOW of the hit line
+  notes.forEach(note => {
+    if (note.hit) return;
+    if (Math.abs(note.time - t) > FLASH_WINDOW) return;
+    const instIdx = INSTRUMENTS.findIndex(i => i.id === note.inst);
+    if (instIdx < 0) return;
+    if (flashes.find(f => f.note === note)) return; // already spawned
+    flashes.push({ note, instIdx, color: INSTRUMENTS[instIdx].color, vel: note.vel, age: 0 });
+  });
+
+  // Render and age each flash
+  for (let i = flashes.length - 1; i >= 0; i--) {
+    const f = flashes[i];
+    f.age += 0.055; // ~18 frames to die at 60fps
+    if (f.age >= 1) { flashes.splice(i, 1); continue; }
+
+    const eased    = 1 - f.age * f.age; // ease-out quad
+    const isAccent = f.vel >= 100;
+    const cy       = f.instIdx * laneH + laneH / 2;
+    const laneTop  = f.instIdx * laneH;
+    const baseR    = Math.max(8, Math.min(32, laneH * (isAccent ? 0.72 : 0.52)));
+    const r        = baseR * (1 + f.age * 1.5); // ring expands outward
+
+    ctx.save();
+
+    // Lane highlight — soft color wash across the full lane width
+    ctx.globalAlpha = eased * (isAccent ? 0.20 : 0.10);
+    ctx.fillStyle   = f.color;
+    ctx.fillRect(0, laneTop, W, laneH);
+
+    // Expanding ring on the hit line
+    ctx.globalAlpha = eased * (isAccent ? 0.90 : 0.72);
+    ctx.beginPath();
+    ctx.arc(hitX, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth   = Math.max(0.5, 2.5 * (1 - f.age));
+    ctx.stroke();
+
+    // Bright white centre dot
+    ctx.globalAlpha = eased * 0.95;
+    ctx.beginPath();
+    ctx.arc(hitX, cy, Math.max(2, laneH * 0.13 * (1 - f.age * 0.5)), 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+
+    ctx.restore();
+  }
 }
 
 // ── HUD ──────────────────────────────────────────────────────────────────────
@@ -465,6 +520,7 @@ export function restart() {
   _stopAudio();
   pauseOffset = 0;
   notes.forEach(n => { n.hit = false; });
+  flashes.length = 0;
   const btn = document.getElementById('btn-play');
   if (btn) btn.textContent = '▶';
   if (wasPlaying) play();
