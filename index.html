@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080810">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Drum Hero">
+<link rel="manifest" href="manifest.json">
+<title>Drum Hero</title>
+<link rel="icon" type="image/png" href="icons/icon-192.png"><rect width='100' height='100' rx='12' fill='%23080810'/><path d='M50 8 C46 14 40 16 42 24 C38 20 38 14 41 10 C36 18 32 26 36 34 C30 30 30 20 34 14 C28 24 28 36 34 44 C38 50 46 52 50 58 C54 52 62 50 66 44 C72 36 72 24 66 14 C70 20 70 30 64 34 C68 26 68 18 62 10 C65 14 62 20 58 24 C60 16 54 14 50 8Z' fill='white'/><ellipse cx='50' cy='68' rx='28' ry='8' fill='none' stroke='%23ff4499' stroke-width='2.5'/><ellipse cx='50' cy='88' rx='28' ry='8' fill='none' stroke='%23ff4499' stroke-width='2.5'/><line x1='22' y1='68' x2='22' y2='88' stroke='%23ff4499' stroke-width='2.5'/><line x1='78' y1='68' x2='78' y2='88' stroke='%23ff4499' stroke-width='2.5'/><circle cx='30' cy='70' r='1.8' fill='%23ff4499'/><circle cx='70' cy='70' r='1.8' fill='%23ff4499'/><circle cx='30' cy='86' r='1.8' fill='%23ff4499'/><circle cx='70' cy='86' r='1.8' fill='%23ff4499'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── RESET ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:     #080810;
+  --panel:  #0f0f1a;
+  --card:   #121220;
+  --border: #1c1c2e;
+  --accent: #ff4499;
+  --acc2:   #ff6eb4;
+  --gold:   #f5a623;
+  --text:   #d0d0e0;
+  --dim:    #7878a0;
+  --green:  #22cc66;
+}
+html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; }
+.song-artist, .song-meta, .ver, .online-dot, .field-label, .drop-label,
+.map-lbl, .lname, .cached-tag, .not-cached-tag, #time-text, #hud-bpm,
+.loading-sub, #loading-msg { font-family:'Inter',sans-serif; }
+
+/* scanlines */
+body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.09) 3px,rgba(0,0,0,0.09) 4px); pointer-events:none; z-index:9999; }
+
+/* ── SCREENS ────────────────────────────────────────────────────────────── */
+.screen { display:none; width:100%; height:100%; position:absolute; inset:0; }
+.screen.active { display:flex; }
+
+/* ════════════════════════════════════════════════════════
+   MENU
+════════════════════════════════════════════════════════ */
+#screen-menu { flex-direction:row; }
+
+.sidebar {
+  width:190px; flex-shrink:0;
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  padding:20px 14px; gap:6px;
+}
+
+.logo-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:14px; }
+.logo-img { width:120px; height:120px; object-fit:contain; animation:lp 4s ease-in-out infinite; }
+@keyframes lp {
+  0%,100%{ filter:drop-shadow(0 0 6px rgba(255,68,153,0.4)); }
+  50%    { filter:drop-shadow(0 0 14px rgba(255,68,153,0.8)); }
+}
+.logo-text {
+  font-family:'Russo One',sans-serif;
+  font-size:15px; letter-spacing:3px;
+  margin-top:4px; text-align:center;
+}
+.logo-drum { color:#ff4499; }
+.logo-hero { color:#ffffff; }
+.logo-sub { font-size:8px; letter-spacing:4px; color:var(--dim); margin-top:2px; margin-bottom:0; text-align:center; }
+
+.nav-btn {
+  background:transparent; border:1px solid var(--border);
+  color:var(--text); font-family:'Russo One',sans-serif;
+  font-size:10px; letter-spacing:2px; padding:9px 10px;
+  text-align:left; cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; gap:7px;
+}
+.nav-btn:hover, .nav-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(255,68,153,.04); }
+.nav-icon { font-size:13px; }
+.spacer { flex:1; }
+.ver { font-size:8px; color:var(--dim); letter-spacing:2px; }
+
+/* Main content */
+.main-content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+.topbar {
+  height:46px; flex-shrink:0;
+  background:var(--panel); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 18px; gap:12px;
+}
+.topbar-title { font-family:'Russo One',sans-serif; font-size:16px; letter-spacing:3px; color:var(--gold); flex:1; }
+.online-dot { font-size:9px; letter-spacing:2px; color:var(--dim); }
+
+/* ── LIBRARY TAB ── */
+#song-list { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; }
+#song-list::-webkit-scrollbar { width:3px; }
+#song-list::-webkit-scrollbar-thumb { background:var(--border); }
+
+.empty-hint { color:var(--dim); font-size:11px; line-height:2; padding:24px; border:1px dashed var(--border); text-align:center; }
+
+.song-card {
+  display:flex; align-items:center;
+  background:var(--card); border:1px solid var(--border);
+  overflow:hidden; transition:border-color .15s;
+}
+.song-card:hover { border-color:var(--accent); }
+
+.song-stripe { width:3px; align-self:stretch; flex-shrink:0; }
+.song-info { flex:1; padding:9px 12px; min-width:0; }
+.song-title { font-family:'Russo One',sans-serif; font-size:15px; letter-spacing:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.song-artist { font-size:9px; color:var(--dim); letter-spacing:1px; margin-top:1px; }
+.song-meta { display:flex; gap:10px; font-size:9px; color:var(--dim); margin-top:3px; letter-spacing:1px; }
+.cached-tag { color:var(--green); }
+.not-cached-tag { color:var(--dim); }
+
+.song-actions { display:flex; align-items:center; padding-right:8px; gap:6px; flex-shrink:0; }
+.btn-icon { background:transparent; border:none; font-size:15px; padding:7px 9px; cursor:pointer; opacity:.5; transition:all .15s; line-height:1; }
+.btn-icon:hover { opacity:1; }
+.btn-icon.play { font-size:20px; color:var(--accent); opacity:1; background:rgba(255,68,153,0.08); border:1px solid rgba(255,68,153,0.3); padding:7px 12px; }
+.btn-icon.play:hover { background:rgba(255,68,153,0.2); }
+.btn-icon.del-btn { color:#ff4466; border:1px solid rgba(255,68,102,0.25); background:rgba(255,68,102,0.05); }
+.btn-icon.del-btn:hover { opacity:1; background:rgba(255,68,102,0.15); border-color:rgba(255,68,102,0.6); }
+.btn-icon.cache-btn { color:var(--green); border:1px solid rgba(34,204,102,0.25); background:rgba(34,204,102,0.05); font-size:13px; }
+.btn-icon.cache-btn:hover { background:rgba(34,204,102,0.15); border-color:rgba(34,204,102,0.5); opacity:1; }
+.btn-icon.cache-btn.not-cached { color:var(--dim); border-color:rgba(120,120,160,0.2); background:transparent; }
+.btn-icon.cache-btn.not-cached:hover { color:var(--text); border-color:rgba(120,120,160,0.5); }
+.cache-status { font-size:9px; letter-spacing:1px; margin-top:3px; }
+.cache-status.cached { color:var(--green); }
+.cache-status.not-cached { color:var(--dim); }
+
+/* ── ADD TRACK TAB ── */
+.add-body { flex:1; overflow-y:auto; padding:16px 20px; }
+
+.field-group { margin-bottom:16px; }
+.field-label { font-size:9px; letter-spacing:3px; color:var(--dim); margin-bottom:6px; display:block; }
+
+.field-input {
+  width:100%; background:var(--bg); border:1px solid var(--border);
+  color:var(--text); font-family:'Russo One',sans-serif;
+  font-size:13px; padding:9px 12px; outline:none; transition:border-color .15s;
+}
+.field-input:focus { border-color:var(--accent); }
+.field-input::placeholder { color:var(--dim); }
+
+.file-drop {
+  border:1px dashed var(--border); padding:16px 14px;
+  cursor:pointer; transition:all .2s; position:relative;
+  display:flex; align-items:center; gap:12px;
+  background:var(--bg);
+}
+.file-drop:hover { border-color:var(--accent); background:rgba(255,68,153,.02); }
+.file-drop.dragover { border-color:var(--accent); background:rgba(255,68,153,.06); border-style:solid; transform:scale(1.01); }
+.file-drop input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.drop-icon { font-size:22px; flex-shrink:0; }
+.drop-text { display:flex; flex-direction:column; gap:2px; }
+.drop-label { font-size:9px; letter-spacing:2px; color:var(--dim); }
+.drop-name  { font-size:11px; color:var(--acc2); min-height:14px; }
+
+.color-row { display:flex; gap:8px; flex-wrap:wrap; }
+.color-swatch {
+  width:28px; height:28px; border-radius:50%;
+  cursor:pointer; border:2px solid transparent;
+  transition:border-color .15s, transform .15s;
+}
+.color-swatch.selected { border-color:#fff; transform:scale(1.15); }
+
+.upload-progress {
+  height:3px; background:var(--border); margin-top:8px;
+  overflow:hidden; display:none;
+}
+.upload-progress-fill { height:100%; background:var(--accent); width:0%; transition:width .2s; }
+
+.submit-btn {
+  font-family:'Russo One',sans-serif; font-size:15px; letter-spacing:2px;
+  background:var(--accent); color:#fff; border:none;
+  padding:11px 0; width:100%; cursor:pointer; transition:background .15s;
+  margin-top:4px;
+}
+.submit-btn:hover { background:var(--acc2); }
+.submit-btn:disabled { background:var(--dim); cursor:not-allowed; }
+
+/* ── MIDI MAP TAB ── */
+.map-body { flex:1; overflow-y:auto; padding:16px 20px; }
+.section-title { font-family:'Russo One',sans-serif; font-size:15px; letter-spacing:3px; color:var(--gold); border-bottom:1px solid var(--border); padding-bottom:5px; margin-bottom:12px; }
+.map-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:7px; margin-bottom:16px; }
+.map-row { display:flex; align-items:center; gap:7px; }
+.map-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.map-lbl { font-size:9px; letter-spacing:1px; color:var(--dim); width:76px; flex-shrink:0; }
+.map-input { flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Russo One',sans-serif; font-size:11px; padding:5px 7px; outline:none; }
+.map-input:focus { border-color:var(--accent); }
+.save-btn { font-family:'Russo One',sans-serif; font-size:15px; letter-spacing:3px; background:var(--accent); color:#fff; border:none; padding:9px 28px; cursor:pointer; }
+.save-btn:hover { background:var(--acc2); }
+
+/* ════════════════════════════════════════════════════════
+   LOADING SCREEN
+════════════════════════════════════════════════════════ */
+#screen-loading { flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+.loading-logo { font-family:'Russo One',sans-serif; font-size:42px; letter-spacing:4px; color:var(--accent); text-shadow:0 0 40px rgba(255,68,153,.5); }
+.loading-bar { width:220px; height:2px; background:var(--border); overflow:hidden; }
+.loading-bar-fill { height:100%; background:var(--accent); animation:ls 1.4s ease-in-out infinite; }
+@keyframes ls { 0%{width:0%;margin-left:0} 50%{width:60%;margin-left:20%} 100%{width:0%;margin-left:100%} }
+#loading-msg { font-size:10px; letter-spacing:3px; color:var(--dim); }
+
+/* ════════════════════════════════════════════════════════
+   TRACK SCREEN (landscape)
+════════════════════════════════════════════════════════ */
+#screen-track { flex-direction:column; }
+
+.track-bar {
+  height:40px; flex-shrink:0;
+  background:var(--panel); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 10px; gap:10px;
+}
+.btn-back { background:none; border:1px solid var(--border); color:var(--dim); font-family:'Russo One',sans-serif; font-size:9px; letter-spacing:2px; padding:5px 9px; cursor:pointer; flex-shrink:0; }
+.btn-back:hover { border-color:var(--accent); color:var(--accent); }
+#track-title { font-family:'Russo One',sans-serif; font-size:16px; letter-spacing:2px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#hud-bpm { font-size:10px; color:var(--dim); flex-shrink:0; }
+
+.track-main { flex:1; display:flex; overflow:hidden; position:relative; }
+
+#lane-labels {
+  width:76px; flex-shrink:0;
+  background:#08080f; border-right:1px solid var(--border);
+  display:flex; flex-direction:column; z-index:5;
+}
+.lane-label { display:flex; align-items:center; padding:0 7px; gap:5px; border-bottom:1px solid; flex-shrink:0; }
+.ldot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+.lname { color:var(--text); white-space:nowrap; }
+
+.canvas-wrap { flex:1; position:relative; overflow:hidden; user-select:none; }
+.canvas-wrap.scrubbing { cursor:ew-resize; }
+#track-canvas { display:block; position:absolute; inset:0; width:100%; height:100%; }
+
+.track-controls {
+  height:48px; flex-shrink:0;
+  background:var(--panel); border-top:1px solid var(--border);
+  display:flex; align-items:center; padding:0 10px; gap:8px;
+}
+.ctrl-btn { font-family:'Russo One',sans-serif; font-size:13px; letter-spacing:2px; background:transparent; border:1px solid var(--border); color:var(--text); padding:6px 12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+.ctrl-btn:hover { border-color:var(--accent); color:var(--accent); }
+.ctrl-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.ctrl-btn.primary:hover { background:var(--acc2); }
+
+.prog-wrap { flex:1; display:flex; align-items:center; gap:8px; }
+.prog-track { flex:1; height:20px; background:transparent; position:relative; cursor:pointer; display:flex; align-items:center; }
+.prog-track-inner { position:absolute; left:0; right:0; height:3px; background:var(--border); pointer-events:none; }
+#progress-fill { height:100%; background:var(--accent); position:relative; pointer-events:none; }
+#progress-fill::after { content:''; position:absolute; right:-5px; top:-4px; width:11px; height:11px; border-radius:50%; background:var(--accent); }
+#time-text { font-size:9px; color:var(--dim); white-space:nowrap; min-width:76px; text-align:center; }
+
+.speed-sel { background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Russo One',sans-serif; font-size:9px; padding:5px 5px; flex-shrink:0; }
+.vol-wrap { display:flex; align-items:center; gap:4px; flex-shrink:0; font-size:11px; }
+.vol-wrap input[type=range] { width:55px; accent-color:var(--accent); }
+
+/* ── TOAST ───────────────────────────────────────────────────────────────── */
+#toast { position:fixed; bottom:58px; left:50%; transform:translateX(-50%) translateY(8px); background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--accent); padding:7px 16px; font-size:10px; letter-spacing:1px; white-space:nowrap; z-index:9000; opacity:0; transition:all .25s; pointer-events:none; }
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── CONFIRM DIALOG ──────────────────────────────────────────────────────── */
+#confirm-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:8000; display:none; align-items:center; justify-content:center; }
+#confirm-overlay.show { display:flex; }
+.confirm-box { background:var(--panel); border:1px solid var(--border); padding:24px; min-width:260px; display:flex; flex-direction:column; gap:16px; }
+.confirm-title { font-family:'Russo One',sans-serif; font-size:18px; letter-spacing:3px; color:var(--accent); }
+.confirm-msg { font-size:11px; color:var(--dim); line-height:1.7; }
+.confirm-btns { display:flex; gap:8px; }
+.confirm-btns button { flex:1; font-family:'Russo One',sans-serif; font-size:14px; letter-spacing:2px; padding:8px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text); }
+.confirm-btns .confirm-ok { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* ── INSTALL BAR ─────────────────────────────────────────────────────────── */
+#install-bar { position:fixed; top:0; left:0; right:0; background:var(--panel); border-bottom:1px solid var(--accent); padding:7px 14px; display:none; align-items:center; gap:10px; z-index:7000; font-size:10px; }
+#install-bar.show { display:flex; }
+#install-bar button { background:var(--accent); border:none; color:#fff; font-family:'Russo One',sans-serif; font-size:12px; letter-spacing:2px; padding:4px 12px; cursor:pointer; }
+.ib-dismiss { background:none!important; border:1px solid var(--border)!important; color:var(--dim)!important; margin-left:auto; }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<div id="install-bar">
+  <span>📲 Добавь на рабочий стол для офлайн доступа</span>
+  <button id="btn-install">УСТАНОВИТЬ</button>
+  <button class="ib-dismiss" id="btn-dismiss-install">✕</button>
+</div>
+
+<!-- Confirm dialog -->
+<div id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">УДАЛИТЬ ТРЕК?</div>
+    <div class="confirm-msg"  id="confirm-msg">Файлы будут удалены из Supabase.</div>
+    <div class="confirm-btns">
+      <button onclick="confirmCancel()">ОТМЕНА</button>
+      <button class="confirm-ok" id="confirm-ok-btn">УДАЛИТЬ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MENU ════════ -->
+<div id="screen-menu" class="screen active">
+  <div class="sidebar">
+    <div class="logo-wrap">
+      <img src="icons/logo.png" alt="Drum Hero" class="logo-img">
+      <div class="logo-text"><span class="logo-drum">DRUM</span> <span class="logo-hero">HERO</span></div>
+    </div>
+    <button class="nav-btn active" id="nav-lib"     onclick="switchTab('library')"><span class="nav-icon">🎵</span>LIBRARY</button>
+    <button class="nav-btn"        id="nav-add"     onclick="switchTab('add')">    <span class="nav-icon">➕</span>ADD TRACK</button>
+    <button class="nav-btn"        id="nav-midimap" onclick="switchTab('midimap')"><span class="nav-icon">⚙</span>MIDI MAP</button>
+    <div class="spacer"></div>
+    <div class="ver">V 1.0</div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- LIBRARY -->
+    <div id="tab-library" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="topbar">
+        <div class="topbar-title">TRACKS</div>
+        <div class="online-dot" id="online-dot">● ONLINE</div>
+      </div>
+      <div id="song-list"><div class="empty-hint">Загрузка...</div></div>
+    </div>
+
+    <!-- ADD TRACK -->
+    <div id="tab-add" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="topbar"><div class="topbar-title">ADD TRACK</div></div>
+      <div class="add-body">
+
+        <div class="field-group">
+          <label class="field-label">НАЗВАНИЕ ТРЕКА</label>
+          <input class="field-input" id="inp-title" type="text" placeholder="Enter Sandman">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">ИСПОЛНИТЕЛЬ</label>
+          <input class="field-input" id="inp-artist" type="text" placeholder="Metallica">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">АУДИО ФАЙЛ (MP3 / WAV / OGG)</label>
+          <div class="file-drop" id="drop-audio">
+            <input type="file" id="inp-audio" accept=".mp3,.wav,.ogg,.flac,.m4a">
+            <div class="drop-icon">🎵</div>
+            <div class="drop-text">
+              <div class="drop-label">ВЫБРАТЬ ФАЙЛ</div>
+              <div class="drop-name" id="audio-name">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">MIDI ФАЙЛ (БАРАБАНЫ)</label>
+          <div class="file-drop" id="drop-midi">
+            <input type="file" id="inp-midi" accept=".mid,.midi">
+            <div class="drop-icon">🥁</div>
+            <div class="drop-text">
+              <div class="drop-label">ВЫБРАТЬ ФАЙЛ</div>
+              <div class="drop-name" id="midi-name">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="upload-progress" id="upload-progress">
+          <div class="upload-progress-fill" id="upload-progress-fill"></div>
+        </div>
+
+        <button class="submit-btn" id="btn-upload" onclick="uploadTrack()">ЗАГРУЗИТЬ В SUPABASE</button>
+      </div>
+    </div>
+
+    <!-- MIDI MAP -->
+    <div id="tab-midimap" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="topbar"><div class="topbar-title">MIDI MAP</div></div>
+      <div class="map-body">
+        <div class="section-title">GGD METAL — НОТЫ</div>
+        <div class="map-grid" id="map-grid"></div>
+        <button class="save-btn" onclick="saveMidiMapUI()">СОХРАНИТЬ</button>
+        <div style="margin-top:20px;">
+          <div class="section-title">КАК ДОБАВИТЬ ТРЕК</div>
+          <div style="font-size:10px;color:var(--dim);line-height:2.2;letter-spacing:1px;">
+            1. Экспортируй MIDI из DAW (только барабаны)<br>
+            2. Перейди на вкладку ADD TRACK<br>
+            3. Выбери MP3 + MIDI файлы, укажи название<br>
+            4. Нажми ЗАГРУЗИТЬ — файлы уйдут в Supabase<br>
+            5. Трек появится в LIBRARY — открывай и играй
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════ LOADING ════════ -->
+<div id="screen-loading" class="screen">
+  <div class="loading-logo">LOADING</div>
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+  <div id="loading-msg">ПОЖАЛУЙСТА ПОДОЖДИТЕ...</div>
+</div>
+
+<!-- ════════ TRACK ════════ -->
+<div id="screen-track" class="screen">
+  <div class="track-bar">
+    <button class="btn-back" onclick="backToMenu()">← НАЗАД</button>
+    <div id="track-title">—</div>
+    <div id="hud-bpm"></div>
+  </div>
+  <div class="track-main">
+    <div id="lane-labels"></div>
+    <div class="canvas-wrap">
+      <canvas id="track-canvas"></canvas>
+    </div>
+  </div>
+  <div class="track-controls">
+    <button class="ctrl-btn primary" id="btn-play" onclick="Player.togglePlay()">▶</button>
+    <button class="ctrl-btn" onclick="Player.restart()">↺</button>
+    <div class="prog-wrap">
+      <span id="time-text">0:00 / 0:00</span>
+      <div class="prog-track" id="prog-track">
+        <div class="prog-track-inner">
+          <div id="progress-fill"></div>
+        </div>
+      </div>
+    </div>
+    <div class="vol-wrap">🔊<input type="range" min="0" max="1" step="0.05" value="1" oninput="Player.setVolume(this.value)"></div>
+    <select class="speed-sel" onchange="Player.setSpeed(this.value)">
+      <option value="0.5">0.5×</option>
+      <option value="0.6">0.6×</option>
+      <option value="0.7">0.7×</option>
+      <option value="0.75">0.75×</option>
+      <option value="0.8">0.8×</option>
+      <option value="0.85">0.85×</option>
+      <option value="0.9">0.9×</option>
+      <option value="0.95">0.95×</option>
+      <option value="1" selected>1×</option>
+    </select>
+    <select class="speed-sel" id="grid-sel" onchange="setGridDiv(this.value)">
+      <option value="0">grid —</option>
+      <option value="2">1/8</option>
+      <option value="3">1/8T</option>
+      <option value="4" selected>1/16</option>
+    </select>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     APP SCRIPT
+════════════════════════════════════════════════════════════════════════ -->
+<script type="module">
+import { parseMidi } from './midi.js';
+import * as Player   from './player.js';
+import * as DB       from './db.js';
+
+// ── Expose to window so onclick= attributes work ──────────────────────────────
+window.Player      = Player;
+window.switchTab   = switchTab;
+window.uploadTrack = uploadTrack;
+window.saveMidiMapUI = saveMidiMapUI;
+window.backToMenu  = backToMenu;
+window.confirmCancel = confirmCancel;
+window.loadLibrary = loadLibrary;
+window.setGridDiv  = v => { window._gridDiv = parseInt(v); };
+window._gridDiv    = 4; // default 1/16
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+Player.initCanvas(document.getElementById('track-canvas'));
+// Init called at bottom of script after all declarations
+
+// ── ONLINE STATUS ─────────────────────────────────────────────────────────────
+function initOnlineStatus() {
+  const el = document.getElementById('online-dot');
+  const upd = () => {
+    el.textContent = navigator.onLine ? '● ONLINE' : '○ OFFLINE';
+    el.style.color  = navigator.onLine ? 'var(--text)' : 'var(--gold)';
+  };
+  window.addEventListener('online',  upd);
+  window.addEventListener('offline', upd);
+  upd();
+}
+
+// ── SERVICE WORKER ─────────────────────────────────────────────────────────────
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+}
+
+// ── PWA INSTALL ────────────────────────────────────────────────────────────────
+function setupInstallPrompt() {
+  // Don't show if user dismissed before or app is already installed
+  if (localStorage.getItem('dh_install_dismissed')) return;
+  if (window.matchMedia('(display-mode: fullscreen)').matches) return;
+  if (window.matchMedia('(display-mode: standalone)').matches) return;
+
+  let deferredInstall = null;
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstall = e;
+    document.getElementById('install-bar').classList.add('show');
+  });
+
+  document.getElementById('btn-install').onclick = () => {
+    deferredInstall?.prompt();
+    document.getElementById('install-bar').classList.remove('show');
+    localStorage.setItem('dh_install_dismissed', '1');
+  };
+
+  document.getElementById('btn-dismiss-install').onclick = () => {
+    document.getElementById('install-bar').classList.remove('show');
+    localStorage.setItem('dh_install_dismissed', '1');
+  };
+
+  // Also hide if app gets installed during session
+  window.addEventListener('appinstalled', () => {
+    document.getElementById('install-bar').classList.remove('show');
+    localStorage.setItem('dh_install_dismissed', '1');
+  });
+}
+
+// ── TABS ───────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  const tabs = ['library', 'add', 'midimap'];
+  const navMap = { library: 'nav-lib', add: 'nav-add', midimap: 'nav-midimap' };
+  tabs.forEach(t => {
+    const tabEl = document.getElementById('tab-' + t);
+    if (!tabEl) return;
+    tabEl.style.display       = t === name ? 'flex' : 'none';
+    tabEl.style.flexDirection = 'column';
+    tabEl.style.flex          = '1';
+    tabEl.style.overflow      = 'hidden';
+    const navEl = document.getElementById(navMap[t]);
+    if (navEl) navEl.classList.toggle('active', t === name);
+  });
+}
+
+// ── LIBRARY ────────────────────────────────────────────────────────────────────
+let library = [];
+
+async function loadLibrary() {
+  const list = document.getElementById('song-list');
+  list.innerHTML = '<div class="empty-hint">Загрузка...</div>';
+  try {
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout — проверь соединение')), 8000));
+    library = await Promise.race([DB.fetchTracks(), timeout]);
+    await renderLibrary();
+  } catch (e) {
+    list.innerHTML = '<div class="empty-hint">Ошибка: ' + e.message +
+      '<br><br><button onclick="loadLibrary()" style="margin-top:10px;background:var(--accent);border:none;color:#fff;font-family:monospace;font-size:10px;padding:6px 14px;cursor:pointer;letter-spacing:2px;">ПОВТОРИТЬ</button></div>';
+  }
+}
+
+async function checkCached(url) {
+  if (!('caches' in window)) return false;
+  try {
+    const cache = await caches.open('drumhero-v1');
+    const match = await cache.match(url);
+    return !!match;
+  } catch { return false; }
+}
+
+async function setCacheStatus(card, song, cached) {
+  const btn = card.querySelector('.cache-btn');
+  const status = card.querySelector('.cache-status');
+  if (!btn || !status) return;
+  if (cached) {
+    btn.textContent = '📥';
+    btn.title = 'Удалить из кэша устройства';
+    btn.classList.remove('not-cached');
+    status.textContent = '● В КЭШ';
+    status.className = 'cache-status cached';
+  } else {
+    btn.textContent = '⬇';
+    btn.title = 'Скачать для офлайн';
+    btn.classList.add('not-cached');
+    status.textContent = '○ НЕ КЭШИРОВАН';
+    status.className = 'cache-status not-cached';
+  }
+  btn.dataset.cached = cached ? '1' : '0';
+}
+
+async function toggleCache(song, card) {
+  const audioUrl = DB.getPublicUrl(song.audio_path);
+  const midiUrl  = DB.getPublicUrl(song.midi_path);
+  const cached   = card.querySelector('.cache-btn').dataset.cached === '1';
+
+  if (cached) {
+    // Remove from device cache
+    try {
+      const cache = await caches.open('drumhero-v1');
+      await cache.delete(audioUrl);
+      await cache.delete(midiUrl);
+      await setCacheStatus(card, song, false);
+      showToast('Удалено из кэша устройства');
+    } catch (e) { showToast('Ошибка: ' + e.message); }
+  } else {
+    // Download to cache
+    showToast('Загрузка в кэш...');
+    try {
+      const cache = await caches.open('drumhero-v1');
+      const [ar, mr] = await Promise.all([fetch(audioUrl), fetch(midiUrl)]);
+      await Promise.all([cache.put(audioUrl, ar), cache.put(midiUrl, mr)]);
+      await setCacheStatus(card, song, true);
+      showToast('Трек сохранён офлайн ✓');
+    } catch (e) { showToast('Ошибка загрузки: ' + e.message); }
+  }
+}
+
+async function renderLibrary() {
+  const list = document.getElementById('song-list');
+  if (!library.length) {
+    list.innerHTML = '<div class="empty-hint">Треков нет.<br>Перейди на вкладку ADD TRACK.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  for (const song of library) {
+    const card = document.createElement('div');
+    card.className = 'song-card';
+    card.innerHTML =
+      '<div class="song-stripe" style="background:' + (song.color || '#ff4499') + '"></div>' +
+      '<div class="song-info">' +
+        '<div class="song-title">' + song.title + '</div>' +
+        '<div class="song-artist">' + (song.artist || '') + '</div>' +
+        '<div class="song-meta">' +
+          (song.bpm ? '<span>' + song.bpm + ' BPM</span>' : '') +
+          (song.duration ? '<span>' + song.duration + '</span>' : '') +
+        '</div>' +
+        '<div class="cache-status not-cached">○ НЕ КЭШИРОВАН</div>' +
+      '</div>' +
+      '<div class="song-actions">' +
+        '<button class="btn-icon cache-btn not-cached" title="Скачать для офлайн">⬇</button>' +
+        '<button class="btn-icon del-btn" title="Удалить трек">🗑</button>' +
+        '<button class="btn-icon play play-btn">▶</button>' +
+      '</div>';
+
+    card.querySelector('.play-btn').addEventListener('click',  e => { e.stopPropagation(); openTrack(song); });
+    card.querySelector('.del-btn').addEventListener('click',   e => { e.stopPropagation(); confirmDelete(song); });
+    card.querySelector('.cache-btn').addEventListener('click', e => { e.stopPropagation(); toggleCache(song, card); });
+
+    list.appendChild(card);
+
+    // Check cache status async — don't block rendering
+    checkCached(DB.getPublicUrl(song.audio_path)).then(cached => {
+      setCacheStatus(card, song, cached);
+    });
+  }
+}
+
+// ── OPEN TRACK ─────────────────────────────────────────────────────────────────
+async function openTrack(song) {
+  showScreen('loading');
+  setLoadingMsg('Загрузка MIDI...');
+  try {
+    const midiRes = await fetch(DB.getPublicUrl(song.midi_path));
+    if (!midiRes.ok) throw new Error('MIDI не найден (' + midiRes.status + ')');
+    const midiAb   = await midiRes.arrayBuffer();
+    const midiData = await parseMidi(midiAb);
+
+    setLoadingMsg('Загрузка аудио...');
+    const audioRes = await fetch(DB.getPublicUrl(song.audio_path));
+    if (!audioRes.ok) throw new Error('Аудио не найдено (' + audioRes.status + ')');
+    const audioAb = await audioRes.arrayBuffer();
+
+    document.getElementById('track-title').textContent = song.title;
+    document.getElementById('hud-bpm').textContent     = midiData.bpm + ' BPM';
+    window._currentSongBpm = midiData.bpm;
+
+    await Player.loadTrack(midiData.notes, audioAb);
+    showScreen('track');
+
+    // After opening, files are now cached by SW — update card status
+    const card = document.querySelector(`.song-card [data-cached]`)?.closest('.song-card');
+    if (!card) {
+      // Find by title
+      document.querySelectorAll('.song-card').forEach(c => {
+        if (c.querySelector('.song-title')?.textContent === song.title) {
+          setCacheStatus(c, song, true);
+        }
+      });
+    }
+  } catch (e) {
+    showScreen('menu');
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+function backToMenu() {
+  Player.unloadTrack();
+  showScreen('menu');
+}
+
+// ── UPLOAD ─────────────────────────────────────────────────────────────────────
+const TRACK_COLORS = ['#ff4499','#ff9900','#f5a623','#22cc66','#00d4ff','#a855f7','#ff4499','#0077bb'];
+let audioFile = null, midiFile = null, midiParsed = null;
+
+// Auto-pick a random color each time a track is added
+function randomColor() {
+  return TRACK_COLORS[Math.floor(Math.random() * TRACK_COLORS.length)];
+}
+
+function buildColorSwatches() {} // no-op, color picker removed
+
+// ── File input handlers ────────────────────────────────────────────────────────
+function setAudioFile(f) {
+  if (!f) return;
+  audioFile = f;
+  document.getElementById('audio-name').textContent = f.name;
+}
+
+async function setMidiFile(f) {
+  if (!f) return;
+  midiFile = f;
+  document.getElementById('midi-name').textContent = f.name;
+  try {
+    const ab = await f.arrayBuffer();
+    midiParsed = await parseMidi(ab);
+  } catch {}
+}
+
+document.getElementById('inp-audio').addEventListener('change', e => setAudioFile(e.target.files[0]));
+document.getElementById('inp-midi').addEventListener('change',  e => setMidiFile(e.target.files[0]));
+
+// ── Drag & Drop ────────────────────────────────────────────────────────────────
+function setupDragDrop(dropId, handler, accept) {
+  const el = document.getElementById(dropId);
+  ['dragenter','dragover'].forEach(evt => {
+    el.addEventListener(evt, e => { e.preventDefault(); el.classList.add('dragover'); });
+  });
+  ['dragleave','drop'].forEach(evt => {
+    el.addEventListener(evt, e => { e.preventDefault(); el.classList.remove('dragover'); });
+  });
+  el.addEventListener('drop', e => {
+    const f = Array.from(e.dataTransfer.files).find(f =>
+      accept.some(ext => f.name.toLowerCase().endsWith(ext))
+    );
+    if (f) handler(f);
+    else showToast('Неверный формат файла');
+  });
+}
+setupDragDrop('drop-audio', setAudioFile, ['.mp3','.wav','.ogg','.flac','.m4a']);
+setupDragDrop('drop-midi',  setMidiFile,  ['.mid','.midi']);
+
+async function uploadTrack() {
+  const title  = document.getElementById('inp-title').value.trim();
+  const artist = document.getElementById('inp-artist').value.trim();
+  if (!title)     { showToast('Введи название трека'); return; }
+  if (!audioFile) { showToast('Выбери аудио файл'); return; }
+  if (!midiFile)  { showToast('Выбери MIDI файл'); return; }
+
+  const btn  = document.getElementById('btn-upload');
+  const pBar = document.getElementById('upload-progress');
+  const pFill= document.getElementById('upload-progress-fill');
+  btn.disabled = true;
+  btn.textContent = 'ЗАГРУЗКА...';
+  pBar.style.display = 'block';
+
+  try {
+    const slug      = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now();
+    const audioExt  = audioFile.name.split('.').pop();
+    const audioPath = slug + '/audio.' + audioExt;
+    const midiPath  = slug + '/notes.mid';
+
+    await DB.uploadFile(audioPath, audioFile, p => { pFill.style.width = (p * 50) + '%'; });
+    await DB.uploadFile(midiPath,  midiFile,  p => { pFill.style.width = (50 + p * 40) + '%'; });
+
+    let duration = '';
+    try {
+      const ab  = await audioFile.arrayBuffer();
+      const ac  = new AudioContext();
+      const buf = await ac.decodeAudioData(ab);
+      ac.close();
+      const s = Math.floor(buf.duration);
+      duration = Math.floor(s / 60) + ':' + (s % 60).toString().padStart(2, '0');
+    } catch {}
+
+    pFill.style.width = '95%';
+    const record = await DB.insertTrack({
+      title, artist: artist || null,
+      bpm: midiParsed?.bpm || null,
+      duration: duration || null,
+      color: randomColor(),
+      audio_path: audioPath,
+      midi_path:  midiPath,
+    });
+
+    pFill.style.width = '100%';
+    library.unshift(record);
+    await renderLibrary();
+
+    document.getElementById('inp-title').value  = '';
+    document.getElementById('inp-artist').value = '';
+    document.getElementById('audio-name').textContent = '—';
+    document.getElementById('midi-name').textContent  = '—';
+    document.getElementById('inp-audio').value = '';
+    document.getElementById('inp-midi').value  = '';
+    audioFile = null; midiFile = null; midiParsed = null;
+
+    showToast('Трек загружен ✓');
+    switchTab('library');
+  } catch (e) {
+    showToast('Ошибка загрузки: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ЗАГРУЗИТЬ В SUPABASE';
+    setTimeout(() => { pBar.style.display = 'none'; pFill.style.width = '0%'; }, 1500);
+  }
+}
+
+// ── DELETE ─────────────────────────────────────────────────────────────────────
+let pendingDelete = null;
+
+function confirmDelete(song) {
+  pendingDelete = song;
+  document.getElementById('confirm-title').textContent = 'УДАЛИТЬ ТРЕК?';
+  document.getElementById('confirm-msg').textContent   = '"' + song.title + '" будет удалён из Supabase.';
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+
+function confirmCancel() {
+  document.getElementById('confirm-overlay').classList.remove('show');
+  pendingDelete = null;
+}
+
+document.getElementById('confirm-ok-btn').addEventListener('click', async () => {
+  if (!pendingDelete) return;
+  document.getElementById('confirm-overlay').classList.remove('show');
+  try {
+    await DB.deleteStorageFiles([pendingDelete.audio_path, pendingDelete.midi_path]);
+    await DB.deleteTrack(pendingDelete.id);
+    library = library.filter(s => s.id !== pendingDelete.id);
+    await renderLibrary();
+    showToast('Трек удалён');
+  } catch (e) {
+    showToast('Ошибка: ' + e.message);
+  }
+  pendingDelete = null;
+});
+
+// ── MIDI MAP ───────────────────────────────────────────────────────────────────
+function buildMidiMapUI() {
+  const grid = document.getElementById('map-grid');
+  if (grid.children.length) return;
+  Player.INSTRUMENTS.forEach(inst => {
+    const row = document.createElement('div');
+    row.className = 'map-row';
+    row.innerHTML =
+      '<span class="map-dot" style="background:' + inst.color + '"></span>' +
+      '<span class="map-lbl">' + inst.label + '</span>' +
+      '<input class="map-input" id="mi_' + inst.id + '" value="' + inst.notes.join(', ') + '">';
+    grid.appendChild(row);
+  });
+}
+
+function saveMidiMapUI() {
+  const obj = {};
+  Player.INSTRUMENTS.forEach(inst => {
+    const el = document.getElementById('mi_' + inst.id);
+    if (el) obj[inst.id] = el.value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  });
+  Player.saveMidiMap(obj);
+  showToast('MIDI map сохранён ✓');
+}
+
+// ── PROGRESS SEEK ──────────────────────────────────────────────────────────────
+function setupProgressSeek() {
+  // ── Desktop: click on progress bar ───────────────────────────────────────
+  const track = document.getElementById('prog-track');
+  track.addEventListener('click', e => {
+    const r = track.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    Player.seekTo(pct);
+  });
+
+  // ── Touch scrubbing on canvas ─────────────────────────────────────────────
+  // Drag left/right on the canvas to scrub through the track.
+  // Pauses on touch start, seeks as you drag, resumes on release.
+  const canvasWrap = document.querySelector('.canvas-wrap');
+  if (!canvasWrap) return;
+
+  let scrubbing    = false;
+  let wasPlaying   = false;
+  let scrubStartX  = 0;
+  let scrubStartT  = 0;
+  const SCRUB_PX_PER_SEC = 120;
+
+  const fmt = s => {
+    const safe = Math.max(0, Math.min(s, Player.getDuration()));
+    return String(Math.floor(safe / 60)).padStart(1,'0') + ':' + String(Math.floor(safe % 60)).padStart(2,'0');
+  };
+
+  canvasWrap.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    wasPlaying = Player.isPlayingNow();
+    if (wasPlaying) Player.togglePlay(); // pause first
+    // Capture stable time AFTER pause
+    scrubStartT = Player.currentTime();
+    scrubStartX = e.touches[0].clientX;
+    scrubbing = true;
+    canvasWrap.classList.add('scrubbing');
+  }, { passive: true });
+
+  canvasWrap.addEventListener('touchmove', e => {
+    if (!scrubbing || e.touches.length !== 1) return;
+    const dx    = e.touches[0].clientX - scrubStartX;
+    const dtSec = -dx / SCRUB_PX_PER_SEC;
+    const dur   = Player.getDuration();
+    const newT  = Math.max(0, Math.min(scrubStartT + dtSec, dur));
+    Player.seekTo(newT / dur);
+    const el = document.getElementById('time-text');
+    if (el) el.textContent = fmt(newT) + ' / ' + fmt(dur);
+  }, { passive: true });
+
+  const endScrub = () => {
+    if (!scrubbing) return;
+    scrubbing = false;
+    canvasWrap.classList.remove('scrubbing');
+    if (wasPlaying) Player.togglePlay(); // resume from new position
+  };
+
+  canvasWrap.addEventListener('touchend',    endScrub, { passive: true });
+  canvasWrap.addEventListener('touchcancel', endScrub, { passive: true });
+}
+
+// ── SCREEN / TOAST HELPERS ────────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name)?.classList.add('active');
+}
+
+function setLoadingMsg(m) {
+  const el = document.getElementById('loading-msg');
+  if (el) el.textContent = m;
+}
+
+// ── PINCH TO ZOOM (canvas) ───────────────────────────────────────────────────
+function setupPinchZoom() {
+  const canvasWrap = document.querySelector('.canvas-wrap');
+  if (!canvasWrap) return;
+
+  let pinchStartDist  = null;
+  let pinchStartLook  = null;
+  let isPinching      = false;
+
+  function getTouchDist(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  canvasWrap.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      isPinching      = true;
+      pinchStartDist  = getTouchDist(e.touches);
+      pinchStartLook  = Player.getLookAhead();
+    }
+  }, { passive: true });
+
+  canvasWrap.addEventListener('touchmove', e => {
+    if (!isPinching || e.touches.length !== 2) return;
+    const dist  = getTouchDist(e.touches);
+    const scale = pinchStartDist / dist; // pinch in → dist smaller → scale>1 → zoom in (smaller window)
+    Player.setLookAhead(pinchStartLook * scale);
+
+    // Show zoom indicator
+    const secs = Player.getLookAhead().toFixed(1);
+    const el = document.getElementById('time-text');
+    if (el) el.textContent = `ZOOM: ${secs}s`;
+  }, { passive: true });
+
+  canvasWrap.addEventListener('touchend', e => {
+    if (e.touches.length < 2) {
+      isPinching     = false;
+      pinchStartDist = null;
+    }
+  }, { passive: true });
+
+  // Desktop: Ctrl+Wheel zoom
+  canvasWrap.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 1.1 : 0.9;
+    Player.setLookAhead(Player.getLookAhead() * delta);
+    const secs = Player.getLookAhead().toFixed(1);
+    const el = document.getElementById('time-text');
+    if (el) el.textContent = `ZOOM: ${secs}s`;
+  }, { passive: false });
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+window.showToast = showToast;
+
+// ── Run after all functions are declared ──────────────────────────────────────
+setupInstallPrompt();
+registerSW();
+initOnlineStatus();
+setupProgressSeek();
+setupPinchZoom();
+buildMidiMapUI();
+buildColorSwatches();
+loadLibrary();
+</script>
+</body>
+</html>
