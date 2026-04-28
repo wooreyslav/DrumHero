@@ -12,8 +12,10 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Supabase storage: cache-first
-  if (e.request.url.includes('/storage/v1/object/public/')) {
+  if (e.request.method !== 'GET') return;
+
+  // Yandex S3 audio/midi files: cache-first
+  if (e.request.url.includes('storage.yandexcloud.net')) {
     e.respondWith(
       caches.match(e.request).then(hit => {
         if (hit) return hit;
