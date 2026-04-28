@@ -291,8 +291,8 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
       <input id="edit-artist" class="text-input" placeholder="ИСПОЛНИТЕЛЬ" style="width:100%;">
     </div>
     <div class="confirm-btns">
-      <button onclick="editCancel()">ОТМЕНА</button>
-      <button class="confirm-ok" onclick="editSave()">СОХРАНИТЬ</button>
+      <button id="edit-cancel-btn">ОТМЕНА</button>
+      <button class="confirm-ok" id="edit-save-btn">СОХРАНИТЬ</button>
     </div>
   </div>
 </div>
@@ -872,6 +872,9 @@ function confirmCancel() {
   document.getElementById('confirm-overlay').classList.remove('show');
   pendingDelete = null;
 }
+
+document.getElementById('edit-cancel-btn').addEventListener('click', editCancel);
+document.getElementById('edit-save-btn').addEventListener('click', editSave);
 
 document.getElementById('confirm-ok-btn').addEventListener('click', async () => {
   if (!pendingDelete) return;
