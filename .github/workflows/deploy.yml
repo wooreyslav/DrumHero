@@ -14,11 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject secrets into config.js
-        run: |
-          sed -i "s|__YS3_ACCESS_KEY__|${{ secrets.YS3_ACCESS_KEY }}|g" config.js
-          sed -i "s|__YS3_SECRET_KEY__|${{ secrets.YS3_SECRET_KEY }}|g" config.js
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
