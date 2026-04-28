@@ -152,6 +152,15 @@ export async function insertTrack(track) {
   return track;
 }
 
+export async function updateTrack(id, fields) {
+  const tracks = await readIndex();
+  const track  = tracks.find(t => t.id === id);
+  if (!track) throw new Error('Трек не найден');
+  Object.assign(track, fields);
+  await writeIndex(tracks);
+  return track;
+}
+
 export async function deleteTrack(id) {
   const tracks   = await readIndex();
   const filtered = tracks.filter(t => t.id !== id);

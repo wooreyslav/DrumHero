@@ -257,8 +257,8 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
 #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
 /* ── CONFIRM DIALOG ──────────────────────────────────────────────────────── */
-#confirm-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:8000; display:none; align-items:center; justify-content:center; }
-#confirm-overlay.show { display:flex; }
+#confirm-overlay, #edit-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:8000; display:none; align-items:center; justify-content:center; }
+#confirm-overlay.show, #edit-overlay.show { display:flex; }
 .confirm-box { background:var(--panel); border:1px solid var(--border); padding:24px; min-width:260px; display:flex; flex-direction:column; gap:16px; }
 .confirm-title { font-family:'Russo One',sans-serif; font-size:18px; letter-spacing:3px; color:var(--accent); }
 .confirm-msg { font-size:11px; color:var(--dim); line-height:1.7; }
@@ -280,6 +280,21 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
   <span>📲 Добавь на рабочий стол для офлайн доступа</span>
   <button id="btn-install">УСТАНОВИТЬ</button>
   <button class="ib-dismiss" id="btn-dismiss-install">✕</button>
+</div>
+
+<!-- Edit dialog -->
+<div id="edit-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title">РЕДАКТИРОВАТЬ</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <input id="edit-title"  class="text-input" placeholder="НАЗВАНИЕ" style="width:100%;">
+      <input id="edit-artist" class="text-input" placeholder="ИСПОЛНИТЕЛЬ" style="width:100%;">
+    </div>
+    <div class="confirm-btns">
+      <button onclick="editCancel()">ОТМЕНА</button>
+      <button class="confirm-ok" onclick="editSave()">СОХРАНИТЬ</button>
+    </div>
+  </div>
 </div>
 
 <!-- Confirm dialog -->
@@ -627,12 +642,14 @@ async function renderLibrary() {
       '</div>' +
       '<div class="song-actions">' +
         '<button class="btn-icon cache-btn not-cached" title="Скачать для офлайн">⬇</button>' +
+        '<button class="btn-icon edit-btn" title="Редактировать">✏</button>' +
         '<button class="btn-icon del-btn" title="Удалить трек">🗑</button>' +
         '<button class="btn-icon play play-btn">▶</button>' +
       '</div>';
 
     card.querySelector('.play-btn').addEventListener('click',  e => { e.stopPropagation(); openTrack(song); });
     card.querySelector('.del-btn').addEventListener('click',   e => { e.stopPropagation(); confirmDelete(song); });
+    card.querySelector('.edit-btn').addEventListener('click',  e => { e.stopPropagation(); openEdit(song); });
     card.querySelector('.cache-btn').addEventListener('click', e => { e.stopPropagation(); toggleCache(song, card); });
 
     list.appendChild(card);
@@ -805,6 +822,40 @@ async function uploadTrack() {
     btn.textContent = 'ЗАГРУЗИТЬ В SUPABASE';
     setTimeout(() => { pBar.style.display = 'none'; pFill.style.width = '0%'; }, 1500);
   }
+}
+
+// ── EDIT ───────────────────────────────────────────────────────────────────────
+let pendingEdit = null;
+
+function openEdit(song) {
+  pendingEdit = song;
+  document.getElementById('edit-title').value  = song.title  || '';
+  document.getElementById('edit-artist').value = song.artist || '';
+  document.getElementById('edit-overlay').classList.add('show');
+  document.getElementById('edit-title').focus();
+}
+
+function editCancel() {
+  document.getElementById('edit-overlay').classList.remove('show');
+  pendingEdit = null;
+}
+
+async function editSave() {
+  if (!pendingEdit) return;
+  const title  = document.getElementById('edit-title').value.trim();
+  const artist = document.getElementById('edit-artist').value.trim();
+  if (!title) { showToast('Введи название трека'); return; }
+  document.getElementById('edit-overlay').classList.remove('show');
+  try {
+    await DB.updateTrack(pendingEdit.id, { title, artist: artist || null });
+    pendingEdit.title  = title;
+    pendingEdit.artist = artist || null;
+    await renderLibrary();
+    showToast('Трек обновлён ✓');
+  } catch (e) {
+    showToast('Ошибка: ' + e.message);
+  }
+  pendingEdit = null;
 }
 
 // ── DELETE ─────────────────────────────────────────────────────────────────────
