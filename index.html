@@ -124,6 +124,9 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
 .btn-icon.cache-btn:hover { background:rgba(34,204,102,0.15); border-color:rgba(34,204,102,0.5); opacity:1; }
 .btn-icon.cache-btn.not-cached { color:var(--dim); border-color:rgba(120,120,160,0.2); background:transparent; }
 .btn-icon.cache-btn.not-cached:hover { color:var(--text); border-color:rgba(120,120,160,0.5); }
+.btn-icon.edit-btn { color:var(--dim); border:1px solid rgba(120,120,160,0.25); background:rgba(120,120,160,0.05); }
+.btn-icon.edit-btn:hover { opacity:1; color:var(--text); border-color:rgba(120,120,160,0.5); background:rgba(120,120,160,0.1); }
+.action-group { display:flex; gap:6px; padding-right:10px; margin-right:4px; border-right:1px solid var(--border); }
 .cache-status { font-size:9px; letter-spacing:1px; margin-top:3px; }
 .cache-status.cached { color:var(--green); }
 .cache-status.not-cached { color:var(--dim); }
@@ -289,6 +292,7 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
     <div style="display:flex;flex-direction:column;gap:8px;">
       <input id="edit-title"  class="text-input" placeholder="НАЗВАНИЕ" style="width:100%;">
       <input id="edit-artist" class="text-input" placeholder="ИСПОЛНИТЕЛЬ" style="width:100%;">
+      <div id="edit-colors" style="display:flex;gap:6px;flex-wrap:wrap;padding-top:4px;"></div>
     </div>
     <div class="confirm-btns">
       <button id="edit-cancel-btn">ОТМЕНА</button>
@@ -641,9 +645,11 @@ async function renderLibrary() {
         '<div class="cache-status not-cached">○ НЕ КЭШИРОВАН</div>' +
       '</div>' +
       '<div class="song-actions">' +
-        '<button class="btn-icon cache-btn not-cached" title="Скачать для офлайн">⬇</button>' +
-        '<button class="btn-icon edit-btn" title="Редактировать">✏</button>' +
-        '<button class="btn-icon del-btn" title="Удалить трек">🗑</button>' +
+        '<div class="action-group">' +
+          '<button class="btn-icon cache-btn not-cached" title="Скачать для офлайн">⬇</button>' +
+          '<button class="btn-icon edit-btn" title="Редактировать">✏</button>' +
+          '<button class="btn-icon del-btn" title="Удалить трек">🗑</button>' +
+        '</div>' +
         '<button class="btn-icon play play-btn">▶</button>' +
       '</div>';
 
@@ -826,11 +832,27 @@ async function uploadTrack() {
 
 // ── EDIT ───────────────────────────────────────────────────────────────────────
 let pendingEdit = null;
+let pendingEditColor = null;
 
 function openEdit(song) {
-  pendingEdit = song;
+  pendingEdit      = song;
+  pendingEditColor = song.color || TRACK_COLORS[0];
   document.getElementById('edit-title').value  = song.title  || '';
   document.getElementById('edit-artist').value = song.artist || '';
+
+  const container = document.getElementById('edit-colors');
+  container.innerHTML = '';
+  TRACK_COLORS.filter((c, i, a) => a.indexOf(c) === i).forEach(c => {
+    const btn = document.createElement('button');
+    btn.style.cssText = `width:22px;height:22px;background:${c};border:2px solid ${pendingEditColor===c?'#fff':'transparent'};cursor:pointer;flex-shrink:0;`;
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('button').forEach(b => b.style.borderColor = 'transparent');
+      btn.style.borderColor = '#fff';
+      pendingEditColor = c;
+    });
+    container.appendChild(btn);
+  });
+
   document.getElementById('edit-overlay').classList.add('show');
   document.getElementById('edit-title').focus();
 }
@@ -847,9 +869,10 @@ async function editSave() {
   if (!title) { showToast('Введи название трека'); return; }
   document.getElementById('edit-overlay').classList.remove('show');
   try {
-    await DB.updateTrack(pendingEdit.id, { title, artist: artist || null });
+    await DB.updateTrack(pendingEdit.id, { title, artist: artist || null, color: pendingEditColor });
     pendingEdit.title  = title;
     pendingEdit.artist = artist || null;
+    pendingEdit.color  = pendingEditColor;
     await renderLibrary();
     showToast('Трек обновлён ✓');
   } catch (e) {
@@ -863,8 +886,9 @@ let pendingDelete = null;
 
 function confirmDelete(song) {
   pendingDelete = song;
+  const label = song.artist ? song.artist + ' — ' + song.title : song.title;
   document.getElementById('confirm-title').textContent = 'УДАЛИТЬ ТРЕК?';
-  document.getElementById('confirm-msg').textContent   = '"' + song.title + '" будет удалён из Supabase.';
+  document.getElementById('confirm-msg').textContent   = 'Вы действительно хотите удалить "' + label + '"? Это действие необратимо.';
   document.getElementById('confirm-overlay').classList.add('show');
 }
 
