@@ -51,7 +51,22 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
   border-right:1px solid var(--border);
   display:flex; flex-direction:column;
   padding:20px 14px; gap:6px;
+  transition:width .2s ease, padding .2s ease;
+  overflow:hidden;
 }
+.sidebar.collapsed {
+  width:52px;
+  padding:12px 8px;
+}
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .logo-sub { display:none; }
+.sidebar.collapsed .logo-img { width:36px; height:36px; }
+.sidebar.collapsed .logo-wrap { margin-bottom:8px; }
+.sidebar.collapsed .nav-label { display:none; }
+.sidebar.collapsed .nav-btn { justify-content:center; padding:9px 6px; }
+.sidebar.collapsed .nav-icon { font-size:16px; }
+.sidebar.collapsed .ver { display:none; }
+.sidebar.collapsed .sidebar-toggle { justify-content:center; }
 
 .logo-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:14px; }
 .logo-img { width:120px; height:120px; object-fit:contain; animation:lp 4s ease-in-out infinite; }
@@ -79,6 +94,14 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
 .nav-icon { font-size:13px; }
 .spacer { flex:1; }
 .ver { font-size:8px; color:var(--dim); letter-spacing:2px; }
+.sidebar-toggle {
+  background:transparent; border:1px solid var(--border);
+  color:var(--dim); cursor:pointer; padding:5px 8px;
+  font-size:11px; transition:all .15s; align-self:stretch;
+  display:flex; align-items:center; gap:5px; white-space:nowrap;
+  font-family:'Russo One',sans-serif; letter-spacing:1px;
+}
+.sidebar-toggle:hover { border-color:var(--accent); color:var(--accent); }
 
 /* Main content */
 .main-content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
@@ -315,16 +338,17 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
 
 <!-- ════════ MENU ════════ -->
 <div id="screen-menu" class="screen active">
-  <div class="sidebar">
+  <div class="sidebar collapsed" id="sidebar">
     <div class="logo-wrap">
       <img src="icons/logo.png" alt="Drum Hero" class="logo-img">
       <div class="logo-text"><span class="logo-drum">DRUM</span> <span class="logo-hero">HERO</span></div>
     </div>
-    <button class="nav-btn active" id="nav-lib"     onclick="switchTab('library')"><span class="nav-icon">🎵</span>LIBRARY</button>
-    <button class="nav-btn"        id="nav-add"     onclick="switchTab('add')">    <span class="nav-icon">➕</span>ADD TRACK</button>
-    <button class="nav-btn"        id="nav-midimap" onclick="switchTab('midimap')"><span class="nav-icon">⚙</span>MIDI MAP</button>
+    <button class="nav-btn active" id="nav-lib"     onclick="switchTab('library')"><span class="nav-icon">🎵</span><span class="nav-label">LIBRARY</span></button>
+    <button class="nav-btn"        id="nav-add"     onclick="switchTab('add')">    <span class="nav-icon">➕</span><span class="nav-label">ADD TRACK</span></button>
+    <button class="nav-btn"        id="nav-midimap" onclick="switchTab('midimap')"><span class="nav-icon">⚙</span><span class="nav-label">MIDI MAP</span></button>
     <div class="spacer"></div>
     <div class="ver">V 1.0</div>
+    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()"><span id="sidebar-toggle-icon">»</span><span class="nav-label"> РАЗВЕРНУТЬ</span></button>
   </div>
 
   <div class="main-content">
@@ -381,7 +405,7 @@ body::after { content:''; position:fixed; inset:0; background:repeating-linear-g
           <div class="upload-progress-fill" id="upload-progress-fill"></div>
         </div>
 
-        <button class="submit-btn" id="btn-upload" onclick="uploadTrack()">ЗАГРУЗИТЬ В SUPABASE</button>
+        <button class="submit-btn" id="btn-upload" onclick="uploadTrack()">ЗАГРУЗИТЬ</button>
       </div>
     </div>
 
@@ -478,6 +502,14 @@ window.confirmCancel = confirmCancel;
 window.loadLibrary = loadLibrary;
 window.setGridDiv  = v => { window._gridDiv = parseInt(v); };
 window._gridDiv    = 4; // default 1/16
+window.toggleSidebar = toggleSidebar;
+
+function toggleSidebar() {
+  const sb   = document.getElementById('sidebar');
+  const icon = document.getElementById('sidebar-toggle-icon');
+  const collapsed = sb.classList.toggle('collapsed');
+  icon.textContent = collapsed ? '»' : '«';
+}
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 Player.initCanvas(document.getElementById('track-canvas'));
@@ -825,7 +857,7 @@ async function uploadTrack() {
     console.error(e);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'ЗАГРУЗИТЬ В SUPABASE';
+    btn.textContent = 'ЗАГРУЗИТЬ';
     setTimeout(() => { pBar.style.display = 'none'; pFill.style.width = '0%'; }, 1500);
   }
 }
